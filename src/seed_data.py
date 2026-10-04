@@ -23,7 +23,8 @@ from src.repositories.models import (
     CustomerModel, PolicyModel, HospitalModel, NetworkHospitalModel,
     PreAuthModel, PreAuthDecisionModel, ClaimModel, AdmissionModel,
     ProcedureRecordModel, FinalBillModel, SettlementModel,
-    ClaimTimelineEventModel, AuditEventModel, NotificationModel
+    ClaimTimelineEventModel, AuditEventModel, NotificationModel,
+    PolicyRuleVersionModel, PolicyProductConfigModel
 )
 
 
@@ -95,7 +96,19 @@ def seed_database(force: bool = False):
             exclusions=["ALL"],
             is_active=False  # Inactive
         )
-        db.add_all([p1, p2, p3])
+        ver1 = PolicyRuleVersionModel(
+            version_id="POL-5001-v1.0.0",
+            policy_code="POL-5001",
+            version_tag="v1.0.0",
+            effective_from="2026-01-01",
+            auto_approval_threshold=Decimal("50000.00"),
+            buffer_percentage=Decimal("0.10"),
+            policy_cap=Decimal("500000.00"),
+            auto_approved_diagnoses=["ACUTE_APPENDICITIS", "CATARACT", "CATARACT_SURGERY", "NORMAL_DELIVERY", "HERNIA_REPAIR", "FRACTURE_REDUCTION"],
+            exclusions=["COSMETIC_SURGERY", "HAIR_TRANSPLANT", "EXPERIMENTAL_THERAPY"],
+            is_active=True
+        )
+        db.add_all([p1, p2, p3, ver1])
         db.flush()
 
         # 3. Hospitals & Network Affiliations
