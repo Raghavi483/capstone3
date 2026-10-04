@@ -16,6 +16,7 @@ root_dir = str(Path(__file__).resolve().parent.parent)
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
+import json
 from decimal import Decimal
 from datetime import datetime, timezone
 from src.repositories.database import SessionLocal, init_db
@@ -275,6 +276,41 @@ def seed_database(force: bool = False):
             actor_id="SETTLEMENT_ENGINE"
         )
         db.add_all([te1, te2, te3, te4, te5])
+
+        # Policy Product Config & Policy Version 2.0.0 (Priority 1 & Priority 3B)
+        cfg1 = PolicyProductConfigModel(
+            policy_code="POL-5001",
+            product_name="MediCard Gold Comprehensive",
+            default_sum_insured=Decimal("500000.00"),
+            auto_approval_threshold=Decimal("50000.00"),
+            buffer_percentage=Decimal("0.1000"),
+            auto_approved_diagnoses_json=json.dumps(["ACUTE_APPENDICITIS", "CATARACT_SURGERY", "DENGUE_FEVER", "NORMAL_DELIVERY", "HERNIA_REPAIR", "FRACTURE_REDUCTION"]),
+            exclusions_json=json.dumps(["COSMETIC_SURGERY", "EXPERIMENTAL_THERAPY"])
+        )
+        ver2 = PolicyRuleVersionModel(
+            version_id="POL-5002-v2.0.0",
+            policy_code="POL-5002",
+            version_tag="v2.0.0",
+            effective_from="2026-07-01",
+            auto_approval_threshold=Decimal("60000.00"),
+            buffer_percentage=Decimal("0.1500"),
+            policy_cap=Decimal("600000.00"),
+            auto_approved_diagnoses_json=json.dumps(["ACUTE_APPENDICITIS", "CATARACT_SURGERY", "DENGUE_FEVER", "NORMAL_DELIVERY", "HERNIA_REPAIR", "FRACTURE_REDUCTION", "CHOLECYSTECTOMY"]),
+            exclusions_json=json.dumps(["COSMETIC_SURGERY", "EXPERIMENTAL_THERAPY"]),
+            is_active=True
+        )
+        db.add_all([cfg1, ver2])
+
+        # Admin Override Audit Record (AC-10)
+        ov_audit = AuditEventModel(
+            entity_type="PRE_AUTH",
+            entity_id="PA-2002",
+            action="PRE_AUTH_OVERRIDE",
+            actor_role="ADMIN",
+            actor_id="cmo_admin_01",
+            changes_json='{"previous_status": "REJECTED", "new_status": "APPROVED", "amount": "50000.00", "reason": "Approved reconstructive clinical exception by Chief Medical Officer"}'
+        )
+        db.add(ov_audit)
 
         # 7. Stubbed Notification
         n1 = NotificationModel(

@@ -37,12 +37,18 @@ def check_prerequisites():
 
 
 def setup_database():
-    """Initialize schema and seed synthetic data."""
-    print("[2/4] Initializing database and deterministic seed data...")
-    from src.repositories.database import init_db, DB_PATH
+    """Execute Alembic migrations and seed deterministic synthetic data."""
+    print("[2/4] Executing database migrations and deterministic seed data...")
+    from src.repositories.database import run_migrations, init_db, DB_PATH
     from src.seed_data import seed_database
 
-    init_db()
+    try:
+        run_migrations()
+        print("      Alembic schema migrations applied successfully to head.")
+    except Exception as exc:
+        print(f"      [MIGRATION NOTICE] {exc}; ensuring schema via init_db()...")
+        init_db()
+
     seed_database()
     print(f"      Database ready at: {DB_PATH}")
 
