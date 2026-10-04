@@ -186,9 +186,26 @@ def test_playwright_e2e_full_lifecycle():
         assert "45,000" in settle_text or "45000" in settle_text
         page.screenshot(path=str(SNAPSHOT_DIR / "12_customer_settlement_breakdown.png"))
 
-        # 12. Reports & Analytics View
+        # 12. Reports & Analytics View (Priority 2, AC-REP-01..03)
         page.click("#tab-btn-reports")
         page.wait_for_selector("#portal-reports", state="visible")
+        with page.expect_response("**/api/v1/reports/analytics"):
+            page.click("#btn-refresh-analytics")
+        page.wait_for_selector("#rep-mean-tat", state="visible")
         page.screenshot(path=str(SNAPSHOT_DIR / "13_reports_analytics.png"))
+
+        # 13. Network & Coverage Administration (Priority 1, AC-NET-01..03)
+        page.click("#tab-btn-admin")
+        page.wait_for_selector("#portal-admin", state="visible")
+        page.fill("#onboard-hospital-id", "HOSP-PW-99")
+        page.fill("#onboard-hospital-name", "Playwright Metro Care")
+        page.fill("#onboard-city", "Hyderabad")
+        page.fill("#onboard-state", "Telangana")
+        page.select_option("#onboard-tier", "TIER_1")
+        with page.expect_response("**/api/v1/admin/hospitals/onboard"):
+            page.click("#btn-onboard-hospital")
+        page.wait_for_selector("#onboard-feedback", state="visible")
+        assert "successfully onboarded" in page.inner_text("#onboard-feedback")
+        page.screenshot(path=str(SNAPSHOT_DIR / "14_network_admin_onboarding.png"))
 
         browser.close()
