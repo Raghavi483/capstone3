@@ -208,3 +208,35 @@ class NotificationModel(Base):
     channel = Column(String(20), default="IN_APP", nullable=False)
     message = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PolicyProductConfigModel(Base):
+    """Configuration for policy products and auto-approval thresholds."""
+    __tablename__ = "policy_product_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    policy_code = Column(String(50), unique=True, index=True, nullable=False)
+    product_name = Column(String(100), nullable=False)
+    default_sum_insured = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    auto_approval_threshold = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    buffer_percentage = Column(Numeric(5, 4, asdecimal=True), nullable=False)
+    auto_approved_diagnoses_json = Column(Text, default="[]", nullable=False)
+    exclusions_json = Column(Text, default="[]", nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    @property
+    def auto_approved_diagnoses(self):
+        return json.loads(self.auto_approved_diagnoses_json or "[]")
+
+    @auto_approved_diagnoses.setter
+    def auto_approved_diagnoses(self, value):
+        self.auto_approved_diagnoses_json = json.dumps(value or [])
+
+    @property
+    def exclusions(self):
+        return json.loads(self.exclusions_json or "[]")
+
+    @exclusions.setter
+    def exclusions(self, value):
+        self.exclusions_json = json.dumps(value or [])
