@@ -1,0 +1,1 @@
+"""MediCard domain layer."""
