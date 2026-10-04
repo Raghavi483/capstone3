@@ -8,6 +8,7 @@ from src.controllers.eligibility_controller import router as eligibility_router
 from src.controllers.pre_auth_controller import router as pre_auth_router
 from src.controllers.claim_controller import router as claim_router
 from src.controllers.settlement_controller import router as settlement_router
+from src.controllers.network_admin_controller import router as network_admin_router
 from src.utils.logger import get_logger
 
 logger = get_logger("medicard.api")
@@ -56,6 +57,7 @@ app.include_router(eligibility_router)
 app.include_router(pre_auth_router)
 app.include_router(claim_router)
 app.include_router(settlement_router)
+app.include_router(network_admin_router)
 
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 if frontend_dir.exists():
