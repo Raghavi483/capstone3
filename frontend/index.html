@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCard — Cashless Hospitalization & Settlement Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-icon">✚</div>
+        <div class="brand-text">
+          <h1>MediCard</h1>
+          <span>Cashless Settlement Platform</span>
+        </div>
+      </div>
+      <div class="system-status">
+        <span class="status-indicator live" id="api-health-dot"></span>
+        <span id="api-health-text">API Online (<span id="api-latency">0ms</span>)</span>
+      </div>
+    </header>
+
+    <!-- Persona Switcher -->
+    <nav class="persona-nav">
+      <button class="nav-tab active" id="tab-btn-customer" data-testid="tab-customer" onclick="switchPortal('customer')">
+        <span class="tab-icon">👤</span> Customer Portal
+      </button>
+      <button class="nav-tab" id="tab-btn-hospital" data-testid="tab-hospital" onclick="switchPortal('hospital')">
+        <span class="tab-icon">🏥</span> Hospital Desk
+      </button>
+      <button class="nav-tab" id="tab-btn-insurer" data-testid="tab-insurer" onclick="switchPortal('insurer')">
+        <span class="tab-icon">🛡️</span> Insurer Workbench
+      </button>
+      <button class="nav-tab" id="tab-btn-admin" data-testid="tab-admin" onclick="switchPortal('admin')">
+        <span class="tab-icon">⚙️</span> Network Admin
+      </button>
+      <button class="nav-tab" id="tab-btn-reports" data-testid="tab-reports" onclick="switchPortal('reports')">
+        <span class="tab-icon">📊</span> Reports & Analytics
+      </button>
+    </nav>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- MAIN PORTAL CONTENT -->
+    <main class="portal-content">
+      
+      <!-- 1. CUSTOMER PORTAL -->
+      <section id="portal-customer" class="portal-panel active">
+        <div class="panel-header">
+          <h2>Member Registration & Coverage Dashboard</h2>
+          <p>Register, link health policies, track claim milestones, and inspect cashless settlements.</p>
+        </div>
+
+        <div class="grid-2col">
+          <!-- Registration Card -->
+          <div class="card glass-card">
+            <h3>Register & Link Health Policy</h3>
+            <form id="customer-reg-form" onsubmit="handleCustomerRegistration(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="reg-member-id">Member ID</label>
+                  <input type="text" id="reg-member-id" data-testid="reg-member-id" required value="MEM-1001">
+                </div>
+                <div class="form-group">
+                  <label for="reg-name">Full Name</label>
+                  <input type="text" id="reg-name" data-testid="reg-name" required value="Alice Johnson">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="reg-email">Email</label>
+                  <input type="email" id="reg-email" data-testid="reg-email" required value="alice.j@example.com">
+                </div>
+                <div class="form-group">
+                  <label for="reg-phone">Phone</label>
+                  <input type="tel" id="reg-phone" data-testid="reg-phone" required value="+1-555-0101">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="reg-policy-id">Policy ID</label>
+                  <input type="text" id="reg-policy-id" data-testid="reg-policy-id" required value="POL-5001">
+                </div>
+                <div class="form-group">
+                  <label for="reg-product-name">Product Name</label>
+                  <input type="text" id="reg-product-name" data-testid="reg-product-name" required value="MediCard Gold Comprehensive">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="reg-sum-insured">Sum Insured (INR)</label>
+                  <input type="number" step="0.01" id="reg-sum-insured" data-testid="reg-sum-insured" required value="500000.00">
+                </div>
+                <div class="form-group">
+                  <label for="reg-exclusions">Exclusions (Comma Separated)</label>
+                  <input type="text" id="reg-exclusions" data-testid="reg-exclusions" value="COSMETIC_SURGERY, EXPERIMENTAL_TREATMENT">
+                </div>
+              </div>
+              <button type="submit" id="btn-customer-register" data-testid="btn-customer-register" class="btn btn-primary">
+                Register & Link Policy
+              </button>
+            </form>
+          </div>
+
+          <!-- Coverage Display Card -->
+          <div class="card glass-card">
+            <h3>Policy Coverage Overview</h3>
+            <div class="coverage-lookup-bar">
+              <input type="text" id="lookup-member-id" placeholder="Member ID" value="MEM-1001">
+              <input type="text" id="lookup-policy-id" placeholder="Policy ID" value="POL-5001">
+              <button id="btn-fetch-coverage" data-testid="btn-fetch-coverage" class="btn btn-secondary" onclick="fetchCoverage()">
+                Fetch Coverage
+              </button>
+            </div>
+
+            <div id="coverage-card" data-testid="coverage-card" class="details-panel" style="display: none;">
+              <div class="metric-row">
+                <div class="metric-badge">
+                  <span class="label">Sum Insured</span>
+                  <span class="value" id="cov-sum-insured">₹0.00</span>
+                </div>
+                <div class="metric-badge">
+                  <span class="label">Remaining Balance</span>
+                  <span class="value text-success" id="cov-remaining-balance">₹0.00</span>
+                </div>
+                <div class="metric-badge">
+                  <span class="label">Status</span>
+                  <span class="value text-cyan" id="cov-status">ACTIVE</span>
+                </div>
+              </div>
+              <div class="badge-section">
+                <h4>Exclusions</h4>
+                <div id="cov-exclusions-list" class="tag-cloud"></div>
+              </div>
+              <div class="badge-section">
+                <h4>Network Hospitals</h4>
+                <div id="cov-hospitals-list" class="tag-cloud"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Case Timeline & Settlement Inspection -->
+        <div class="grid-2col mt-4">
+          <div class="card glass-card">
+            <h3>Claim Milestone Timeline (AC-09)</h3>
+            <div class="timeline-lookup-bar">
+              <input type="text" id="timeline-claim-id" placeholder="Claim ID (e.g. CLM-3001)" value="CLM-3001">
+              <button id="btn-fetch-timeline" data-testid="btn-fetch-timeline" class="btn btn-secondary" onclick="fetchClaimTimeline()">
+                Load Timeline
+              </button>
+            </div>
+            <div id="timeline-events-container" data-testid="timeline-events-container" class="timeline-list">
+              <p class="empty-state">No timeline loaded. Enter Claim ID and click Load Timeline.</p>
+            </div>
+          </div>
+
+          <div class="card glass-card">
+            <h3>Settlement Breakdown (AC-07)</h3>
+            <div class="settlement-lookup-bar">
+              <input type="text" id="settlement-claim-id" placeholder="Claim ID" value="CLM-3001">
+              <button id="btn-fetch-settlement" data-testid="btn-fetch-settlement" class="btn btn-secondary" onclick="fetchSettlementDetails()">
+                View Settlement
+              </button>
+            </div>
+            <div id="settlement-details-card" data-testid="settlement-details-card" class="details-panel" style="display: none;">
+              <table class="data-table">
+                <tr><th>Final Hospital Bill</th><td id="set-final-bill">₹0.00</td></tr>
+                <tr><th>Authorized Pre-Auth</th><td id="set-pre-auth">₹0.00</td></tr>
+                <tr><th>Buffer Percentage</th><td id="set-buffer-pct">10%</td></tr>
+                <tr><th>Effective Bill Cap</th><td id="set-bill-cap">₹0.00</td></tr>
+                <tr><th>Deductible Paid</th><td id="set-deductible">₹0.00</td></tr>
+                <tr><th>Co-Pay Paid</th><td id="set-copay">₹0.00</td></tr>
+                <tr class="highlight-row"><th>Insurer Cashless Settlement</th><td id="set-insurer-payout" class="text-success">₹0.00</td></tr>
+                <tr class="patient-row"><th>Patient Out-of-Pocket</th><td id="set-patient-resp" class="text-warning">₹0.00</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. HOSPITAL VIEW -->
+      <section id="portal-hospital" class="portal-panel">
+        <div class="panel-header">
+          <h2>Hospital Cashless Intake & Discharge Desk</h2>
+          <p>Real-time eligibility verification, pre-authorization submission, and final billing.</p>
+        </div>
+
+        <div class="grid-2col">
+          <!-- Eligibility Lookup Desk -->
+          <div class="card glass-card">
+            <h3>Network Eligibility Lookup (AC-02)</h3>
+            <form id="eligibility-check-form" onsubmit="handleEligibilityCheck(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="check-member-id">Member ID</label>
+                  <input type="text" id="check-member-id" data-testid="check-member-id" required value="MEM-1001">
+                </div>
+                <div class="form-group">
+                  <label for="check-policy-id">Policy ID</label>
+                  <input type="text" id="check-policy-id" data-testid="check-policy-id" required value="POL-5001">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="check-hospital-id">Querying Hospital ID</label>
+                <input type="text" id="check-hospital-id" data-testid="check-hospital-id" required value="HOSP-001">
+              </div>
+              <button type="submit" id="btn-check-eligibility" data-testid="btn-check-eligibility" class="btn btn-primary">
+                Verify Eligibility
+              </button>
+            </form>
+
+            <div id="eligibility-result-banner" data-testid="eligibility-result-banner" class="status-banner" style="display: none;">
+              <div class="banner-title" id="elig-status-text">ELIGIBLE</div>
+              <div class="banner-details">
+                <span>Available Balance: <strong id="elig-balance">₹0.00</strong></span>
+                <div id="elig-reasons-container" class="mt-2"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pre-Auth Submission Form -->
+          <div class="card glass-card">
+            <h3>Pre-Authorization Request (AC-03, AC-05)</h3>
+            <form id="preauth-form" onsubmit="handlePreAuthSubmit(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pa-member-id">Member ID</label>
+                  <input type="text" id="pa-member-id" data-testid="pa-member-id" required value="MEM-1001">
+                </div>
+                <div class="form-group">
+                  <label for="pa-policy-id">Policy ID</label>
+                  <input type="text" id="pa-policy-id" data-testid="pa-policy-id" required value="POL-5001">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pa-hospital-id">Hospital ID</label>
+                  <input type="text" id="pa-hospital-id" data-testid="pa-hospital-id" required value="HOSP-001">
+                </div>
+                <div class="form-group">
+                  <label for="pa-diagnosis">Diagnosis Code / Condition</label>
+                  <input type="text" id="pa-diagnosis" data-testid="pa-diagnosis" required value="ACUTE_APPENDICITIS">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pa-estimated-cost">Estimated Cost (INR)</label>
+                  <input type="number" step="0.01" id="pa-estimated-cost" data-testid="pa-estimated-cost" required value="45000.00">
+                </div>
+                <div class="form-group">
+                  <label for="pa-admission-date">Expected Admission Date</label>
+                  <input type="date" id="pa-admission-date" data-testid="pa-admission-date" required value="2026-10-15">
+                </div>
+              </div>
+              <button type="submit" id="btn-submit-preauth" data-testid="btn-submit-preauth" class="btn btn-primary">
+                Submit Pre-Authorization
+              </button>
+            </form>
+
+            <div id="preauth-decision-banner" data-testid="preauth-decision-banner" class="status-banner" style="display: none;">
+              <div class="banner-title" id="pa-decision-status">APPROVED</div>
+              <div class="banner-details">
+                <p>Pre-Auth ID: <strong id="pa-res-id">PA-XXXX</strong> | Claim ID: <strong id="pa-res-claim-id">CLM-XXXX</strong></p>
+                <p>Authorized Amount: <strong id="pa-res-amount">₹0.00</strong></p>
+                <div id="pa-res-reasons"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admission and Final Bill Row -->
+        <div class="grid-2col mt-4">
+          <!-- Patient Admission Form -->
+          <div class="card glass-card">
+            <h3>Record Patient Admission (AC-06, AC-08)</h3>
+            <form id="admit-form" onsubmit="handleAdmitPatient(event)">
+              <div class="form-group">
+                <label for="admit-claim-id">Claim ID</label>
+                <input type="text" id="admit-claim-id" data-testid="admit-claim-id" required value="CLM-3001">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="admit-date">Admission Date</label>
+                  <input type="date" id="admit-date" data-testid="admit-date" required value="2026-10-15">
+                </div>
+                <div class="form-group">
+                  <label for="admit-hospital-id">Hospital ID</label>
+                  <input type="text" id="admit-hospital-id" data-testid="admit-hospital-id" required value="HOSP-001">
+                </div>
+              </div>
+              <button type="submit" id="btn-admit-patient" data-testid="btn-admit-patient" class="btn btn-secondary">
+                Confirm Admission
+              </button>
+            </form>
+            <div id="admit-feedback" data-testid="admit-feedback" class="status-banner mt-2" style="display: none;"></div>
+          </div>
+
+          <!-- Final Bill & Discharge Form -->
+          <div class="card glass-card">
+            <h3>Final Bill & Discharge (AC-06)</h3>
+            <form id="discharge-form" onsubmit="handleDischargePatient(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="dis-claim-id">Claim ID</label>
+                  <input type="text" id="dis-claim-id" data-testid="dis-claim-id" required value="CLM-3001">
+                </div>
+                <div class="form-group">
+                  <label for="dis-hospital-id">Hospital ID</label>
+                  <input type="text" id="dis-hospital-id" data-testid="dis-hospital-id" required value="HOSP-001">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="dis-date">Discharge Date</label>
+                  <input type="date" id="dis-date" data-testid="dis-date" required value="2026-10-18">
+                </div>
+                <div class="form-group">
+                  <label for="dis-final-bill">Final Bill Amount (INR)</label>
+                  <input type="number" step="0.01" id="dis-final-bill" data-testid="dis-final-bill" required value="48000.00">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Procedure Code & Description</label>
+                <div class="form-row">
+                  <input type="text" id="dis-proc-code" placeholder="Code (e.g. PR-APP-01)" value="PR-APP-01">
+                  <input type="text" id="dis-proc-desc" placeholder="Description" value="Appendectomy">
+                  <input type="number" step="0.01" id="dis-proc-cost" placeholder="Cost" value="48000.00">
+                </div>
+              </div>
+              <button type="submit" id="btn-discharge-patient" data-testid="btn-discharge-patient" class="btn btn-secondary">
+                Submit Final Bill & Discharge
+              </button>
+            </form>
+            <div id="discharge-feedback" data-testid="discharge-feedback" class="status-banner mt-2" style="display: none;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. INSURER / ADJUDICATOR WORKBENCH -->
+      <section id="portal-insurer" class="portal-panel">
+        <div class="panel-header">
+          <h2>Insurer Adjudication & Override Workbench</h2>
+          <p>Inspect pre-authorizations, execute elevated administrator overrides, and calculate settlements.</p>
+        </div>
+
+        <div class="grid-2col">
+          <!-- Administrator Override Panel -->
+          <div class="card glass-card">
+            <h3>Insurer Administrator Override (AC-10)</h3>
+            <form id="admin-override-form" onsubmit="handleAdminOverride(event)">
+              <div class="form-group">
+                <label for="ov-preauth-id">Target Pre-Auth ID</label>
+                <input type="text" id="ov-preauth-id" data-testid="ov-preauth-id" required value="PA-2002">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="ov-decision">Override Decision</label>
+                  <select id="ov-decision" data-testid="ov-decision">
+                    <option value="APPROVED">APPROVED</option>
+                    <option value="PARTIALLY_APPROVED">PARTIALLY_APPROVED</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="ov-amount">Override Authorized Amount (INR)</label>
+                  <input type="number" step="0.01" id="ov-amount" data-testid="ov-amount" required value="50000.00">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ov-reason">Mandatory Justification (min 10 characters)</label>
+                <textarea id="ov-reason" data-testid="ov-reason" rows="2" required placeholder="Clinical justification approved by CMO...">Exceptional clinical necessity approved by medical director</textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="ov-actor-id">Admin Actor ID</label>
+                  <input type="text" id="ov-actor-id" data-testid="ov-actor-id" required value="admin_user_01">
+                </div>
+                <div class="form-group">
+                  <label for="ov-role-header">Auth Role Header (Security Boundary)</label>
+                  <select id="ov-role-header" data-testid="ov-role-header">
+                    <option value="ADMIN">ADMIN (Authorized)</option>
+                    <option value="HOSPITAL">HOSPITAL (Unauthorized / 403)</option>
+                    <option value="CUSTOMER">CUSTOMER (Unauthorized / 403)</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" id="btn-execute-override" data-testid="btn-execute-override" class="btn btn-primary">
+                Execute Administrator Override
+              </button>
+            </form>
+            <div id="override-result-banner" data-testid="override-result-banner" class="status-banner mt-2" style="display: none;"></div>
+          </div>
+
+          <!-- Claim Settlement Action Panel -->
+          <div class="card glass-card">
+            <h3>Finalize Claim Settlement (AC-07)</h3>
+            <form id="settlement-calc-form" onsubmit="handleClaimSettlement(event)">
+              <div class="form-group">
+                <label for="calc-claim-id">Discharged Claim ID</label>
+                <input type="text" id="calc-claim-id" data-testid="calc-claim-id" required value="CLM-3001">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="calc-deductible">Deductible (INR)</label>
+                  <input type="number" step="0.01" id="calc-deductible" data-testid="calc-deductible" value="1000.00">
+                </div>
+                <div class="form-group">
+                  <label for="calc-copay">Co-Payment (INR)</label>
+                  <input type="number" step="0.01" id="calc-copay" data-testid="calc-copay" value="2000.00">
+                </div>
+              </div>
+              <button type="submit" id="btn-finalize-settlement" data-testid="btn-finalize-settlement" class="btn btn-primary">
+                Calculate & Settle Claim
+              </button>
+            </form>
+            <div id="calc-settlement-feedback" data-testid="calc-settlement-feedback" class="status-banner mt-2" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- Pre-Auth Queue Table -->
+        <div class="card glass-card mt-4">
+          <div class="table-header-row">
+            <h3>Pre-Authorization Evaluation Queue</h3>
+            <button class="btn btn-secondary" onclick="loadPreAuthQueue()">Refresh Queue</button>
+          </div>
+          <table class="data-table" id="preauth-queue-table">
+            <thead>
+              <tr>
+                <th>Pre-Auth ID</th>
+                <th>Claim ID</th>
+                <th>Member ID</th>
+                <th>Estimated Cost</th>
+                <th>Admission Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="preauth-queue-tbody">
+              <tr><td colspan="6" class="text-center">Loading pre-authorizations...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. NETWORK & COVERAGE ADMIN -->
+      <section id="portal-admin" class="portal-panel">
+        <div class="panel-header">
+          <h2>Network Hospital & Coverage Administration</h2>
+          <p>Inspect active provider network directory and platform rules.</p>
+        </div>
+
+        <div class="card glass-card">
+          <h3>Registered Network Hospitals</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Hospital ID</th>
+                <th>Facility Name</th>
+                <th>City</th>
+                <th>Network Tier</th>
+                <th>Cashless Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>HOSP-001</code></td>
+                <td>Metro City Hospital</td>
+                <td>Metropolis</td>
+                <td><span class="badge badge-success">Tier 1</span></td>
+                <td><span class="badge badge-cyan">In-Network</span></td>
+              </tr>
+              <tr>
+                <td><code>HOSP-002</code></td>
+                <td>St. Jude Medical Center</td>
+                <td>Gotham</td>
+                <td><span class="badge badge-success">Tier 2</span></td>
+                <td><span class="badge badge-cyan">In-Network</span></td>
+              </tr>
+              <tr>
+                <td><code>HOSP-999</code></td>
+                <td>Sunrise Out-of-Network Clinic</td>
+                <td>Star City</td>
+                <td><span class="badge badge-secondary">Non-Network</span></td>
+                <td><span class="badge badge-danger">Out-of-Network</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5. REPORTS & ANALYTICS -->
+      <section id="portal-reports" class="portal-panel">
+        <div class="panel-header">
+          <h2>Operational Performance & Settlement Analytics</h2>
+          <p>Real-time analytics on cashless settlement throughput, latency, and financial distribution.</p>
+        </div>
+
+        <div class="metric-grid">
+          <div class="kpi-card glass-card">
+            <span class="kpi-title">Average Adjudication Latency</span>
+            <span class="kpi-value text-cyan">42 ms</span>
+            <span class="kpi-subtext">NFR-07 SLA: &lt; 1,000 ms</span>
+          </div>
+          <div class="kpi-card glass-card">
+            <span class="kpi-title">Auto-Approval Rate</span>
+            <span class="kpi-value text-success">85.4%</span>
+            <span class="kpi-subtext">Rule-driven engine (AC-05)</span>
+          </div>
+          <div class="kpi-card glass-card">
+            <span class="kpi-title">Active Network Hospitals</span>
+            <span class="kpi-value">2 / 3</span>
+            <span class="kpi-subtext">Cashless enabled</span>
+          </div>
+          <div class="kpi-card glass-card">
+            <span class="kpi-title">Settlement Math Precision</span>
+            <span class="kpi-value text-emerald">100% Decimal</span>
+            <span class="kpi-subtext">Zero float tolerance (NFR-01)</span>
+          </div>
+        </div>
+
+        <div class="card glass-card mt-4">
+          <div class="table-header-row">
+            <h3>Settled Claims Ledger</h3>
+            <button class="btn btn-secondary" onclick="loadSettlementsReport()">Refresh Ledger</button>
+          </div>
+          <table class="data-table" id="settlements-report-table">
+            <thead>
+              <tr>
+                <th>Settlement ID</th>
+                <th>Claim ID</th>
+                <th>Total Final Bill</th>
+                <th>Insurer Cashless Payout</th>
+                <th>Patient Out-of-Pocket</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="settlements-report-tbody">
+              <tr><td colspan="6" class="text-center">Click Refresh Ledger to inspect records.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>MediCard Health Cashless Platform • BC-AINE-017 • Antigravity AI-Native Orchestrated</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

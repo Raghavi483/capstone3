@@ -46,8 +46,21 @@ async def correlation_id_middleware(request: Request, call_next):
     return response
 
 
+import os
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 app.include_router(health_router)
 app.include_router(eligibility_router)
 app.include_router(pre_auth_router)
 app.include_router(claim_router)
 app.include_router(settlement_router)
+
+frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
+
+    @app.get("/")
+    def serve_frontend_index():
+        return FileResponse(str(frontend_dir / "index.html"))
