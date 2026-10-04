@@ -48,7 +48,8 @@ Every major milestone, acceptance criteria, and architectural enhancement in the
 | **PR #12** | `feat/sprint-10-migrations-policy-versioning` | `c4da817` | Priority 3 & 3B: Alembic Migrations on Empty DB, Versioned Policy Rules, Historical Claim Immutability | `specs/reviews/sprint-10-evaluator.md` | 88 passed | 2026-10-04 | **MERGED** |
 | **PR #13** | `feat/sprint-11-controller-authorization` | `0d29211` | Priority 4: Controller-Level Role Boundaries, Multi-Tenant Isolation, 401/403 HTTP Security Tests | `specs/reviews/sprint-11-evaluator.md` | 94 passed | 2026-10-04 | **MERGED** |
 | **PR #14** | `feat/sprint-12-playwright-and-sdk` | `40c4e7f` | Priority 5 & 6: Playwright E2E live pass with 14 snapshots, real Claude Agent SDK runner & dry-run | `specs/reviews/sprint-12-evaluator.md` | 99 passed | 2026-10-04 | **MERGED** |
-| **PR #15** | `feat/sprint-13-ci-and-pr-history` | *In Progress* | Priority 7 & 8: Complete GitLab CI pipeline with migrations, tests, Playwright, evaluation & PR ledger | `specs/reviews/sprint-13-evaluator.md` | 99 passed | 2026-10-04 | **PENDING** |
+| **PR #15** | `feat/sprint-13-ci-and-pr-history` | `29a9a43` | Priority 7 & 8: Complete GitLab CI pipeline with migrations, tests, Playwright, evaluation & PR ledger | `specs/reviews/sprint-13-evaluator.md` | 99 passed | 2026-10-04 | **MERGED** |
+| **PR #16** | `feat/sprint-14-final-submission` | `58d5172` | Priority 9 & 10: Final Gap Closure, Startup Migrations, Enriched Seed, Matrices, Submission Readiness | `specs/reviews/sprint-14-evaluator.md` | 99 passed | 2026-10-04 | **MERGED** |
 
 ---
 
