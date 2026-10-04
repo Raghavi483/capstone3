@@ -27,14 +27,19 @@ from src.repositories.models import (
 )
 
 
-def seed_database():
+def seed_database(force: bool = False):
     """Populates deterministic synthetic demonstration records."""
     init_db()
     db = SessionLocal()
 
     try:
-        # Check if already seeded
-        if db.query(CustomerModel).first():
+        if force:
+            db.close()
+            from src.repositories.database import Base, engine
+            Base.metadata.drop_all(bind=engine)
+            Base.metadata.create_all(bind=engine)
+            db = SessionLocal()
+        elif db.query(CustomerModel).first():
             print("[SEED] Database already contains records. Skipping seed.")
             return
 
