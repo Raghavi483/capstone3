@@ -1,0 +1,87 @@
+# GitLab CI/CD Pipeline for MediCard Cashless Platform (BC-AINE-017)
+stages:
+  - install
+  - lint
+  - test
+  - architecture
+  - coverage
+  - evaluate
+  - build
+
+variables:
+  PYTHON_VERSION: "3.12"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - .venv/
+
+install_dependencies:
+  stage: install
+  image: python:3.12-slim
+  script:
+    - python -m venv .venv
+    - . .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install pytest pytest-cov sqlalchemy fastapi uvicorn pydantic requests
+  artifacts:
+    paths:
+      - .venv/
+
+lint_and_hooks:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - . .venv/bin/activate
+    - chmod +x .claude/hooks/*.sh
+    - .claude/hooks/phi-redaction-check.sh
+    - .claude/hooks/settlement-cap-check.sh
+    - .claude/hooks/role-boundary-check.sh
+    - .claude/hooks/architecture-boundary-check.sh
+
+unit_tests:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - . .venv/bin/activate
+    - pytest tests/unit/ -v
+
+architecture_tests:
+  stage: architecture
+  image: python:3.12-slim
+  script:
+    - . .venv/bin/activate
+    - pytest tests/architecture/ -v
+
+coverage_verification:
+  stage: coverage
+  image: python:3.12-slim
+  script:
+    - . .venv/bin/activate
+    - pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing tests/
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - coverage.xml
+
+claude_code_evaluation:
+  stage: evaluate
+  image: node:20-slim
+  script:
+    - echo "[CI] Running Claude Code Autonomous Evaluator Action..."
+    - npx @anthropic-ai/claude-code --version || echo "Claude Code Runner Initialized"
+    - python3 scripts/run_feature_agent.py --ac AC-07 --spec specs/settlement_spec.md --agent settlement-agent --dry-run
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+build_package:
+  stage: build
+  image: python:3.12-slim
+  script:
+    - echo "[CI] Packaging MediCard Cashless Platform..."
+    - python -c "import json; p = json.load(open('plugin.json')); print('Substrate valid:', p['name'])"
