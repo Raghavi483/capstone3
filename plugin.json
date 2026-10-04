@@ -1,0 +1,61 @@
+{
+  "name": "medicard-cashless-substrate",
+  "version": "1.0.0",
+  "description": "MediCard Health Cashless Hospitalization & Settlement Platform AI-Native Engineering Substrate",
+  "business_case": "BC-AINE-017",
+  "domain": "Insurance — Health Cashless",
+  "author": "Virtusa AI-Native Engineering Capstone",
+  "agents": [
+    ".claude/agents/eligibility-agent.md",
+    ".claude/agents/pre-auth-decider-agent.md",
+    ".claude/agents/settlement-agent.md",
+    ".claude/agents/adjudicator-agent.md",
+    ".claude/agents/state-machine-validator-agent.md",
+    ".claude/agents/audit-tracer-agent.md",
+    ".claude/agents/architecture-test-agent.md",
+    ".claude/agents/planner.md",
+    ".claude/agents/generator.md",
+    ".claude/agents/evaluator.md",
+    ".claude/agents/security-reviewer.md",
+    ".claude/agents/test-engineer.md",
+    ".claude/agents/design-critic.md",
+    ".claude/agents/ui-designer.md"
+  ],
+  "skills": [
+    ".claude/skills/eligibility-resolver/SKILL.md",
+    ".claude/skills/pre-auth-auto-decider/SKILL.md",
+    ".claude/skills/settlement-calculator/SKILL.md",
+    ".claude/skills/network-hospital-validator/SKILL.md",
+    ".claude/skills/state-machine-validator/SKILL.md",
+    ".claude/skills/audit-tracer/SKILL.md",
+    ".claude/skills/archtest-author/SKILL.md"
+  ],
+  "commands": [
+    ".claude/commands/validate-medi-card.md",
+    ".claude/commands/implement-feature.md",
+    ".claude/commands/validate-ac.md",
+    ".claude/commands/settlement-check.md",
+    ".claude/commands/security-review.md"
+  ],
+  "hooks": [
+    ".claude/hooks/phi-redaction-check.sh",
+    ".claude/hooks/phi-redaction-check.ps1",
+    ".claude/hooks/settlement-cap-check.sh",
+    ".claude/hooks/settlement-cap-check.ps1",
+    ".claude/hooks/role-boundary-check.sh",
+    ".claude/hooks/role-boundary-check.ps1",
+    ".claude/hooks/architecture-boundary-check.sh",
+    ".claude/hooks/architecture-boundary-check.ps1"
+  ],
+  "mcp_config": ".mcp.json",
+  "specifications": [
+    "specs/app_spec.md",
+    "specs/eligibility_spec.md",
+    "specs/pre_auth_spec.md",
+    "specs/adjudication_spec.md",
+    "specs/admission_spec.md",
+    "specs/settlement_spec.md",
+    "specs/network_admin_spec.md",
+    "specs/reports_spec.md"
+  ]
+}
