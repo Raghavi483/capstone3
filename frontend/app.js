@@ -27,7 +27,10 @@ function switchPortal(portalName) {
 
   if (portalName === "insurer") {
     loadPreAuthQueue();
+  } else if (portalName === "admin") {
+    loadAdminHospitals();
   } else if (portalName === "reports") {
+    loadAnalyticsDashboard();
     loadSettlementsReport();
   }
 }
@@ -455,5 +458,215 @@ function getStatusBadgeClass(status) {
     case "REJECTED": return "badge-danger";
     case "PARTIALLY_APPROVED": return "badge-cyan";
     default: return "badge-secondary";
+  }
+}
+
+// 13. Network Admin: Onboard Hospital (AC-NET-01)
+async function handleOnboardHospital(e) {
+  e.preventDefault();
+  const feedback = document.getElementById("onboard-feedback");
+  feedback.style.display = "none";
+
+  const payload = {
+    hospital_id: document.getElementById("onboard-hospital-id").value.trim(),
+    name: document.getElementById("onboard-hospital-name").value.trim(),
+    city: document.getElementById("onboard-city").value.trim(),
+    state: document.getElementById("onboard-state") ? document.getElementById("onboard-state").value.trim() : "Karnataka",
+    tier: document.getElementById("onboard-tier").value
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/hospitals/onboard`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Role": "ADMIN",
+        "X-User-Id": "admin_portal_user"
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      feedback.className = "status-banner success mt-2";
+      feedback.innerText = `Hospital ${data.hospital_id} successfully onboarded into ${data.tier}!`;
+      feedback.style.display = "block";
+      loadAdminHospitals();
+    } else {
+      feedback.className = "status-banner error mt-2";
+      feedback.innerText = `Onboarding failed: ${data.detail || "Error"}`;
+      feedback.style.display = "block";
+    }
+  } catch (err) {
+    feedback.className = "status-banner error mt-2";
+    feedback.innerText = `Network error: ${err.message}`;
+    feedback.style.display = "block";
+  }
+}
+
+// 14. Network Admin: Configure Policy (AC-NET-02)
+async function handleConfigurePolicy(e) {
+  e.preventDefault();
+  const feedback = document.getElementById("policy-config-feedback");
+  feedback.style.display = "none";
+
+  const whitelist = document.getElementById("cfg-whitelist").value.split(",").map(s => s.trim()).filter(Boolean);
+  const payload = {
+    product_name: document.getElementById("cfg-product-name").value.trim(),
+    auto_approval_threshold: document.getElementById("cfg-auto-threshold").value.trim(),
+    diagnosis_whitelist: whitelist,
+    policy_cap: document.getElementById("cfg-policy-cap").value.trim(),
+    buffer_percentage: document.getElementById("cfg-buffer-pct").value.trim()
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/policies/configure`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Role": "ADMIN",
+        "X-User-Id": "admin_portal_user"
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      feedback.className = "status-banner success mt-2";
+      feedback.innerText = `Policy configuration saved for ${data.product_name}!`;
+      feedback.style.display = "block";
+    } else {
+      feedback.className = "status-banner error mt-2";
+      feedback.innerText = `Configuration failed: ${data.detail || "Error"}`;
+      feedback.style.display = "block";
+    }
+  } catch (err) {
+    feedback.className = "status-banner error mt-2";
+    feedback.innerText = `Network error: ${err.message}`;
+    feedback.style.display = "block";
+  }
+}
+
+// 15. Load Admin Hospitals Directory (AC-NET-03)
+async function loadAdminHospitals() {
+  const tbody = document.getElementById("admin-hospitals-tbody");
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/hospitals`, {
+      headers: {
+        "X-User-Role": "ADMIN",
+        "X-User-Id": "admin_portal_user"
+      }
+    });
+    if (!res.ok) return;
+    const items = await res.json();
+    if (!items || items.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='6' class='text-center'>No hospitals registered.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = items.map(h => `
+      <tr>
+        <td><code>${h.hospital_id}</code></td>
+        <td>${h.name}</td>
+        <td>${h.city}</td>
+        <td><span class="badge ${h.tier === 'TIER_1' ? 'badge-success' : 'badge-cyan'}">${h.tier}</span></td>
+        <td><span class="badge ${h.is_active ? 'badge-success' : 'badge-danger'}">${h.is_active ? 'In-Network' : 'Inactive'}</span></td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="toggleHospitalStatus('${h.hospital_id}', ${h.is_active})">
+            ${h.is_active ? 'Deactivate' : 'Activate'}
+          </button>
+        </td>
+      </tr>
+    `).join("");
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan='6' class='text-danger'>Failed to load hospitals: ${err.message}</td></tr>`;
+  }
+}
+
+// 16. Toggle Hospital Network Status (AC-NET-01)
+async function toggleHospitalStatus(hospId, isCurrentlyActive) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/hospitals/${hospId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Role": "ADMIN",
+        "X-User-Id": "admin_portal_user"
+      },
+      body: JSON.stringify({ is_active: !isCurrentlyActive })
+    });
+    if (res.ok) {
+      loadAdminHospitals();
+    } else {
+      const err = await res.json();
+      alert(`Status toggle failed: ${err.detail || "Error"}`);
+    }
+  } catch (err) {
+    alert(`Request error: ${err.message}`);
+  }
+}
+
+// 17. Load Operational Analytics Dashboard (AC-REP-01, AC-REP-02, AC-REP-03)
+async function loadAnalyticsDashboard() {
+  try {
+    const res = await fetch(`${API_BASE}/reports/analytics`, {
+      headers: {
+        "X-User-Role": "INSURER",
+        "X-User-Id": "insurer_analyst_01"
+      }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Render KPIs
+    const tat = data.turnaround_time;
+    if (tat) {
+      document.getElementById("rep-mean-tat").innerText = `${parseFloat(tat.mean_seconds).toFixed(2)} s`;
+      document.getElementById("rep-median-tat").innerText = `Median: ${parseFloat(tat.median_seconds).toFixed(2)} s (P95: ${parseFloat(tat.p95_seconds).toFixed(2)} s)`;
+      document.getElementById("rep-auto-approval-rate").innerText = `${(parseFloat(tat.auto_approval_ratio) * 100).toFixed(1)}%`;
+      document.getElementById("rep-auto-approval-count").innerText = `${tat.auto_approved_count} auto / ${tat.total_evaluations} total`;
+    }
+
+    const setSum = data.settlement_summary;
+    if (setSum) {
+      document.getElementById("rep-total-settlement-vol").innerText = `₹${parseFloat(setSum.total_settled_amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+      document.getElementById("rep-settlement-count").innerText = `${setSum.total_claims_settled} settled claims`;
+      document.getElementById("rep-loss-ratio").innerText = `${(parseFloat(setSum.loss_ratio) * 100).toFixed(1)}%`;
+    }
+
+    // Render Hospital Query Rates
+    const qTbody = document.getElementById("tbody-hospital-query-rates");
+    if (qTbody && data.query_rates_by_hospital) {
+      if (data.query_rates_by_hospital.length === 0) {
+        qTbody.innerHTML = "<tr><td colspan='5' class='text-center'>No query data.</td></tr>";
+      } else {
+        qTbody.innerHTML = data.query_rates_by_hospital.map(q => `
+          <tr>
+            <td><code>${q.hospital_id}</code></td>
+            <td>${q.hospital_name}</td>
+            <td>${q.total_claims}</td>
+            <td>${q.query_count}</td>
+            <td><span class="badge ${parseFloat(q.query_rate) > 0.2 ? 'badge-danger' : 'badge-success'}">${(parseFloat(q.query_rate) * 100).toFixed(1)}%</span></td>
+          </tr>
+        `).join("");
+      }
+    }
+
+    // Render Top Diagnoses
+    const diagTbody = document.getElementById("tbody-top-diagnoses");
+    if (diagTbody && data.top_diagnoses) {
+      if (data.top_diagnoses.length === 0) {
+        diagTbody.innerHTML = "<tr><td colspan='3' class='text-center'>No diagnosis data.</td></tr>";
+      } else {
+        diagTbody.innerHTML = data.top_diagnoses.map(d => `
+          <tr>
+            <td><code>${d.diagnosis}</code></td>
+            <td>${d.frequency}</td>
+            <td class="text-emerald">₹${parseFloat(d.total_payout).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+          </tr>
+        `).join("");
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load analytics dashboard:", err);
   }
 }

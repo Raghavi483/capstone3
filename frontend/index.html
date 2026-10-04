@@ -452,43 +452,104 @@
       <section id="portal-admin" class="portal-panel">
         <div class="panel-header">
           <h2>Network Hospital & Coverage Administration</h2>
-          <p>Inspect active provider network directory and platform rules.</p>
+          <p>Onboard provider facilities, configure policy auto-approval rules, and audit network directories.</p>
         </div>
 
-        <div class="card glass-card">
-          <h3>Registered Network Hospitals</h3>
-          <table class="data-table">
+        <div class="grid-2col">
+          <!-- Onboard Hospital Form -->
+          <div class="card glass-card">
+            <h3>Onboard Network Hospital</h3>
+            <form id="form-onboard-hospital" onsubmit="handleOnboardHospital(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="onboard-hospital-id">Hospital ID</label>
+                  <input type="text" id="onboard-hospital-id" required value="HOSP-003">
+                </div>
+                <div class="form-group">
+                  <label for="onboard-tier">Network Tier</label>
+                  <select id="onboard-tier">
+                    <option value="TIER_1">Tier 1 (Tertiary Super-Specialty)</option>
+                    <option value="TIER_2" selected>Tier 2 (Secondary Multi-Specialty)</option>
+                    <option value="TIER_3">Tier 3 (Primary Care Network)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="onboard-hospital-name">Facility Name</label>
+                  <input type="text" id="onboard-hospital-name" required value="Apollo Spectra Hospital">
+                </div>
+                <div class="form-group">
+                  <label for="onboard-city">City</label>
+                  <input type="text" id="onboard-city" required value="Bengaluru">
+                </div>
+                <div class="form-group">
+                  <label for="onboard-state">State</label>
+                  <input type="text" id="onboard-state" required value="Karnataka">
+                </div>
+              </div>
+              <button type="submit" id="btn-onboard-hospital" class="btn btn-primary">
+                Onboard Provider Facility
+              </button>
+            </form>
+            <div id="onboard-feedback" class="status-banner mt-2" style="display: none;"></div>
+          </div>
+
+          <!-- Policy Configuration Form -->
+          <div class="card glass-card">
+            <h3>Configure Policy Rules & Thresholds</h3>
+            <form id="form-policy-config" onsubmit="handleConfigurePolicy(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="cfg-product-name">Product Name</label>
+                  <input type="text" id="cfg-product-name" required value="MediCard Gold Comprehensive">
+                </div>
+                <div class="form-group">
+                  <label for="cfg-auto-threshold">Auto-Approval Threshold (INR)</label>
+                  <input type="number" step="0.01" id="cfg-auto-threshold" required value="50000.00">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="cfg-policy-cap">Policy Cap (INR)</label>
+                  <input type="number" step="0.01" id="cfg-policy-cap" required value="500000.00">
+                </div>
+                <div class="form-group">
+                  <label for="cfg-buffer-pct">Discharge Buffer (%)</label>
+                  <input type="number" step="0.01" id="cfg-buffer-pct" required value="0.10">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="cfg-whitelist">Diagnosis Whitelist (Comma-Separated)</label>
+                <input type="text" id="cfg-whitelist" value="ACUTE_APPENDICITIS, CATARACT_SURGERY, DENGUE_FEVER">
+              </div>
+              <button type="submit" id="btn-save-policy-config" class="btn btn-secondary">
+                Publish Policy Configuration
+              </button>
+            </form>
+            <div id="policy-config-feedback" class="status-banner mt-2" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- Registered Network Hospitals Table -->
+        <div class="card glass-card mt-4">
+          <div class="table-header-row">
+            <h3>Registered Provider Directory</h3>
+            <button class="btn btn-secondary" id="btn-refresh-hospitals" onclick="loadAdminHospitals()">Refresh Directory</button>
+          </div>
+          <table class="data-table" id="admin-hospitals-table">
             <thead>
               <tr>
                 <th>Hospital ID</th>
                 <th>Facility Name</th>
                 <th>City</th>
-                <th>Network Tier</th>
-                <th>Cashless Status</th>
+                <th>Tier</th>
+                <th>Cashless Network Status</th>
+                <th>Action</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><code>HOSP-001</code></td>
-                <td>Metro City Hospital</td>
-                <td>Metropolis</td>
-                <td><span class="badge badge-success">Tier 1</span></td>
-                <td><span class="badge badge-cyan">In-Network</span></td>
-              </tr>
-              <tr>
-                <td><code>HOSP-002</code></td>
-                <td>St. Jude Medical Center</td>
-                <td>Gotham</td>
-                <td><span class="badge badge-success">Tier 2</span></td>
-                <td><span class="badge badge-cyan">In-Network</span></td>
-              </tr>
-              <tr>
-                <td><code>HOSP-999</code></td>
-                <td>Sunrise Out-of-Network Clinic</td>
-                <td>Star City</td>
-                <td><span class="badge badge-secondary">Non-Network</span></td>
-                <td><span class="badge badge-danger">Out-of-Network</span></td>
-              </tr>
+            <tbody id="admin-hospitals-tbody">
+              <tr><td colspan="6" class="text-center">Loading network hospitals...</td></tr>
             </tbody>
           </table>
         </div>
@@ -498,29 +559,72 @@
       <section id="portal-reports" class="portal-panel">
         <div class="panel-header">
           <h2>Operational Performance & Settlement Analytics</h2>
-          <p>Real-time analytics on cashless settlement throughput, latency, and financial distribution.</p>
+          <p>Real-time analytics computed directly from persisted claims and pre-authorization ledgers.</p>
+        </div>
+
+        <div class="table-header-row mb-3">
+          <span class="text-secondary">Authoritative data stream</span>
+          <button class="btn btn-secondary" id="btn-refresh-analytics" onclick="loadAnalyticsDashboard()">Refresh Analytics</button>
         </div>
 
         <div class="metric-grid">
           <div class="kpi-card glass-card">
-            <span class="kpi-title">Average Adjudication Latency</span>
-            <span class="kpi-value text-cyan">42 ms</span>
-            <span class="kpi-subtext">NFR-07 SLA: &lt; 1,000 ms</span>
+            <span class="kpi-title">Mean Turnaround Time</span>
+            <span class="kpi-value text-cyan" id="rep-mean-tat">0.00 s</span>
+            <span class="kpi-subtext" id="rep-median-tat">Median: 0.00 s (P95: 0.00 s)</span>
           </div>
           <div class="kpi-card glass-card">
             <span class="kpi-title">Auto-Approval Rate</span>
-            <span class="kpi-value text-success">85.4%</span>
-            <span class="kpi-subtext">Rule-driven engine (AC-05)</span>
+            <span class="kpi-value text-success" id="rep-auto-approval-rate">0.0%</span>
+            <span class="kpi-subtext" id="rep-auto-approval-count">0 approved / 0 total</span>
           </div>
           <div class="kpi-card glass-card">
-            <span class="kpi-title">Active Network Hospitals</span>
-            <span class="kpi-value">2 / 3</span>
-            <span class="kpi-subtext">Cashless enabled</span>
+            <span class="kpi-title">Total Cashless Payout</span>
+            <span class="kpi-value text-emerald" id="rep-total-settlement-vol">₹0.00</span>
+            <span class="kpi-subtext" id="rep-settlement-count">0 settled claims</span>
           </div>
           <div class="kpi-card glass-card">
-            <span class="kpi-title">Settlement Math Precision</span>
-            <span class="kpi-value text-emerald">100% Decimal</span>
-            <span class="kpi-subtext">Zero float tolerance (NFR-01)</span>
+            <span class="kpi-title">Loss Ratio</span>
+            <span class="kpi-value text-amber" id="rep-loss-ratio">0.00%</span>
+            <span class="kpi-subtext">Claims Paid / Incurred Premium</span>
+          </div>
+        </div>
+
+        <div class="grid-2col mt-4">
+          <!-- Hospital Query Rates Table -->
+          <div class="card glass-card">
+            <h3>Hospital Query Rates (AC-REP-02)</h3>
+            <table class="data-table" id="table-hospital-query-rates">
+              <thead>
+                <tr>
+                  <th>Hospital ID</th>
+                  <th>Facility Name</th>
+                  <th>Total Claims</th>
+                  <th>Query Count</th>
+                  <th>Query Rate</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-hospital-query-rates">
+                <tr><td colspan="5" class="text-center">Loading query rates...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Top Diagnoses Table -->
+          <div class="card glass-card">
+            <h3>Top Diagnoses & Payout Distribution</h3>
+            <table class="data-table" id="table-top-diagnoses">
+              <thead>
+                <tr>
+                  <th>Diagnosis</th>
+                  <th>Frequency</th>
+                  <th>Total Payout</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-top-diagnoses">
+                <tr><td colspan="3" class="text-center">Loading top diagnoses...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 

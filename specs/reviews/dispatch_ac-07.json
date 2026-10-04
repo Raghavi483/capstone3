@@ -1,9 +1,67 @@
 {
-  "task_id": "TASK-AC-07-20261004082842",
+  "task_id": "TASK-AC-07-20261004111009",
   "target_ac": "AC-07",
   "assigned_agent": "settlement-agent",
-  "system_prompt": "You are a specialized MediCard domain agent. Adhere strictly to Rule 1 (No-Hand-Coding) and Rule 2 (Spec is Source of Truth). Follow TDD Red-Green-Refactor. Use Decimal for all currency.",
+  "system_prompt": "You are a specialized MediCard domain agent. Adhere strictly to Rule 1 (No-Hand-Coding) and Rule 2 (Spec is Source of Truth). Follow TDD Red-Green-Refactor. Use Decimal for all currency. Enforce append-only ledger immutability and mask all PHI from logs.",
   "user_message": "Implement Acceptance Criteria AC-07.\n\nSpecification Context:\n**Target Acceptance Criteria**: AC-07, NFR-01, NFR-02  \n**Specification File**: `specs/settlement_spec.md`  \n**Version**: 1.1.0  \n**Audit Status**: VERIFIED (Audited for term disambiguation)  \n\n---\n\n## 1. Purpose\nSpecifies the mathematical calculation of insurer cashless settlement payouts to network hospitals, enforcement of the zero-floor non-negative invariant, fixed-point decimal arithmetic, and append-only settlement persistence.\n\n---\n\n## 2. Actors\n- **Hospital**: Submits settlement request upon patient discharge.\n- **Settlement Engine**: Executes the centralized calculation formula.\n- **Insurer Finance**: Reviews and disburses stubbed settlement payments.\n- **Customer**: Inspects breakdown of out-of-pocket costs (deductibles, co-pay) and insurer payment.\n\n---\n\n## 3. Disambiguated Terminology & Variable Definitions\nTo eliminate ambiguity, all monetary terms are strictly distinguished and defined as follows:\n\n| Term Variable | Type | Definition & Mathematical Formula |\n| :--- | :--- | :--- |\n| `pre_auth_amount` | `Decimal` | Authorized coverage cap approved during pre-authorization. |\n| `buffer_percentage` | `Decimal` | Configured policy variance ratio (e.g. `Decimal(\"0.10\")` represents 10%). |\n| `buffer_amount` | `Decimal` | Explicit monetary buffer: $$\\text{buffer\\_amount} = \\text{pre\\_auth\\_amount} \\times \\text{buffer\\_percentage}$$ |\n| `bill_cap` | `Decimal` | Maximum bill amount eligible for cashless settlement: $$\\text{bill\\_cap} = \\text{pre\\_auth\\_amount} + \\text{buffer\\_amount}$$ |\n| `final_bill` | `Decimal` | Total itemized invoice submitted by hospital upon patient discharge. |\n| `effective_bill` | `Decimal` | Bill amount considered for insurance settlement: $$\\text{effective\\_bill} = \\min(\\text{final\\_bill}, \\text{bill\\_cap})$$ |\n| `deductible` | `Decimal` | Policyholder deductible subtracted before insurer payout. |\n| `co_pay` | `Decimal` | Policyholder co-payment obligation subtracted before insurer payout. |\n| `settlement_amount` | `Decimal` | Net insurer payout to network hospital: $$\\text{settlement\\_amount} = \\max(0, \\text{effective\\_bill} - \\text{deductible} - \\text{co\\_pay})$$ |\n| `patient_responsibility` | `Decimal` | Total out-of-pocket amount payable by patient to hospital: $$\\text{patient\\_responsibility} = (\\text{final\\_bill} - \\text{effective\\_bill}) + \\text{deductible} + \\text{co\\_pay}$$ |\n\n---\n\n## 4. Inputs\nSettlement Calculation Input DTO:\n- `case_id`: UUID\n- `final_bill`: Decimal (e.g. `52000.00`)\n- `pre_auth_amount`: Decimal (e.g. `50000.00`)\n- `buffer_percentage`: Decimal (e.g. `0.10`)\n- `deductible`: Decimal (e.g. `2000.00`)\n- `co_pay`: Decimal (e.g. `5000.00`)\n\n---\n\n## 5. Outputs\nSettlement Calculation Result DTO:\n- `settlement_id`: UUID\n- `case_id`: UUID\n- `buffer_amount`: Decimal\n- `bill_cap`: Decimal\n- `effective_bill`: Decimal\n- `deductions_total`: Decimal (`deductible + co_pay`)\n- `settlement_amount`: Decimal (Insurer payout to hospital)\n- `patient_responsibility`: Decimal\n- `settlement_status`: `SETTLED`\n- `calculated_at`: ISO-8601 timestamp\n\n---\n\n## 6. Domain Rules & Invariants\n1. **Rule SET-01 (Canonical Formula & Non-Negative Invariant - AC-07)**:\n   - Calculation sequence:\n     $$\\text{buffer\\_amount} = \\text{pre\\_auth\\_amount} \\times \\text{buffer\\_percentage}$$\n     $$\\text{bill\\_cap} = \\text{pre\\_auth\\_amount} + \\text{buffer\\_amount}$$\n     $$\\text{effective\\_bill} = \\min(\\text{final\\_bill}, \\text{bill\\_cap})$$\n     $$\\text{settlement\\_amount} = \\max(0, \\text{effective\\_bill} - \\text{deductible} - \\text{co\\_pay})$$\n   - **MANDATORY MATHEMATICAL INVARIANT**:\n     $$\\text{settlement\\_amount} \\ge 0$$\n2. **Rule SET-02 (Fixed-Point Arithmetic - NFR-01)**:\n   - All variables and intermediate operations MUST use `decimal.Decimal`.\n   - Floating-point representations (`float`) are strictly forbidden. Any `float` passed raises `TypeError`.\n3. **Rule SET-03 (Single Source of Truth)**:\n   - Settlement calculation logic MUST be centralized inside `src/domain/settlement_rule.py`.\n   - Duplication across controllers or services is prohibited and enforced via hook `settlement-cap-check`.\n4. **Rule SET-04 (Append-Only Persistence - NFR-02)**:\n   - Once saved in `claim_settlements`, the record is immutable. No updates or deletions are allowed.\n\n---\n\n## 7. State Transitions\nClaim state transitions from `DISCHARGED` $\\to$ `SETTLED`.\n\n---\n\n## 8. Error Handling\n- `TypeError`: If any input is passed as a `float` instead of `Decimal`.\n- `ValueError`: If any monetary value is negative.\n- `InvalidClaimStateException`: If settlement is requested before `DISCHARGED` state.\n\n---\n\n## 9. Security Rules\n- Only authorized Insurer Finance or internal settlement daemon can finalize settlement payouts.\n\n---\n\n## 10. Audit Requirements\n- Settlement generation dispatches an immutable audit record capturing all terms: `case_id`, `settlement_id`, `final_bill`, `bill_cap`, `effective_bill`, `deductible`, `co_pay`, `settlement_amount`, `timestamp`.\n\n---\n\n## 11. Acceptance Criteria\n\n### AC-07: Settlement Calculation & Invariant Enforcement\n- **Scenario 1 (Standard Settlement with Buffer Cap)**:\n  - **Given** `pre_auth_amount = 50000.00`, `buffer_percentage = 0.10`\n  - **And** `buffer_amount = 5000.00`, resulting in `bill_cap = 55000.00`\n  - **And** `final_bill = 52000.00`, `deductible = 2000.00`, `co_pay = 5000.00`\n  - **When** the settlement is calculated\n  - **Then** `effective_bill = 52000.00`\n  - **And** `settlement_amount = 45000.00` ($52000 - 2000 - 5000$)\n  - **And** `patient_responsibility = 7000.00` ($2000 + 5000$)\n  - **And** invariant `settlement_amount >= 0` is satisfied.\n\n- **Scenario 2 (High Deductible Non-Negative Floor)**:\n  - **Given** `final_bill = 10000.00`, `pre_auth_amount = 10000.00`, `buffer_percentage = 0.00`\n  - **And** `deductible = 8000.00` and `co_pay = 5000.00` (Total deductions = 13000.00)\n  - **When** the settlement is calculated\n  - **Then** raw difference is $-3000.00$\n  - **And** `settlement_amount` is floored at `0.00`\n  - **And** invariant `settlement_amount >= 0` is strictly maintained.\n\n- **Scenario 3 (Final Bill Exceeds Bill Cap)**:\n  - **Given** `pre_auth_amount = 100000.00`, `buffer_percentage = 0.10` (`bill_cap = 110000.00`)\n  - **And** `final_bill = 120000.00` (Exceeds bill cap by 10000.00)\n  - **And** `deductible = 0.00`, `co_pay = 10000.00`\n  - **When** the settlement is calculated\n  - **Then** `effective_bill = 110000.00` (Capped)\n  - **And** `settlement_amount = 100000.00` ($110000 - 10000$)\n  - **And** `patient_responsibility = 20000.00` ($10000 \\text{ excess} + 10000 \\text{ co-pay}$).\n\nRequirements:\n1. Generate tests in tests/unit/ (Red phase).\n2. Implement domain logic in src/domain/ using Decimal arithmetic.\n3. Verify non-negative settlement invariant and append-only rules.\n4. Prohibit PHI plaintext logging.",
+  "tools": [
+    {
+      "name": "read_specification_section",
+      "description": "Reads a specific Acceptance Criteria section from a MediCard markdown specification.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "spec_path": {
+            "type": "string",
+            "description": "Relative path to spec markdown file"
+          },
+          "ac_id": {
+            "type": "string",
+            "description": "Target AC identifier, e.g. AC-07"
+          }
+        },
+        "required": [
+          "spec_path",
+          "ac_id"
+        ]
+      }
+    },
+    {
+      "name": "run_pytest_suite",
+      "description": "Executes pytest for the target AC tests to verify Red-Green-Refactor progression.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "test_path": {
+            "type": "string",
+            "description": "Path to test file to execute"
+          }
+        },
+        "required": [
+          "test_path"
+        ]
+      }
+    },
+    {
+      "name": "record_audit_evidence",
+      "description": "Appends an immutable audit event for agent code generation.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_type",
+          "details"
+        ]
+      }
+    }
+  ],
   "validation_command": "pytest tests/unit/test_ac-07*.py -v",
-  "timestamp": "2026-10-04T08:28:42.400539+00:00"
+  "timestamp": "2026-10-04T11:10:09.782534+00:00"
 }
