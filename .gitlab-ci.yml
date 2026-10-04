@@ -4,6 +4,7 @@ stages:
   - lint
   - test
   - architecture
+  - security
   - coverage
   - evaluate
   - build
@@ -54,12 +55,19 @@ architecture_tests:
     - . .venv/bin/activate
     - pytest tests/architecture/ -v
 
+security_tests:
+  stage: security
+  image: python:3.12-slim
+  script:
+    - . .venv/bin/activate
+    - pytest tests/security/ -v
+
 coverage_verification:
   stage: coverage
   image: python:3.12-slim
   script:
     - . .venv/bin/activate
-    - pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing tests/
+    - pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing tests/unit tests/architecture tests/security
   artifacts:
     reports:
       coverage_report:
@@ -70,11 +78,11 @@ coverage_verification:
 
 claude_code_evaluation:
   stage: evaluate
-  image: node:20-slim
+  image: python:3.12-slim
   script:
-    - echo "[CI] Running Claude Code Autonomous Evaluator Action..."
-    - npx @anthropic-ai/claude-code --version || echo "Claude Code Runner Initialized"
-    - python3 scripts/run_feature_agent.py --ac AC-07 --spec specs/settlement_spec.md --agent settlement-agent --dry-run
+    - . .venv/bin/activate
+    - echo "[CI] Running Claude Code Autonomous Evaluator Pipeline..."
+    - python scripts/run_feature_agent.py --ac AC-07 --spec specs/settlement_spec.md --agent settlement-agent --dry-run
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == "main"'
@@ -83,5 +91,7 @@ build_package:
   stage: build
   image: python:3.12-slim
   script:
-    - echo "[CI] Packaging MediCard Cashless Platform..."
+    - . .venv/bin/activate
+    - echo "[CI] Auditing Codebase Metrics & Packaging MediCard Cashless Platform..."
+    - python scripts/loc_report.py
     - python -c "import json; p = json.load(open('plugin.json')); print('Substrate valid:', p['name'])"
