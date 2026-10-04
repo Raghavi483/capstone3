@@ -27,3 +27,11 @@ def test_nfr07_health_endpoint_status_and_latency():
     assert data["status"] == "UP"
     assert "timestamp" in data
     assert data["service"] == "medicard-settlement-platform"
+
+
+def test_frontend_index_serving():
+    """Verifies that GET / serves the MediCard UI single page application."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "MediCard" in response.text
+    assert "Customer Portal" in response.text
