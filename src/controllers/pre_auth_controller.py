@@ -61,10 +61,13 @@ def list_pre_auths(db: Session = Depends(get_db)):
     return service.list_all()
 
 
+from src.controllers.auth_dependency import require_admin
+
+
 @router.post("/admin/preauth/override")
 def override_pre_auth(
     payload: AdminOverrideRequest,
-    x_user_role: str = Header(default="ADMIN", alias="X-User-Role"),
+    admin_id: str = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     service = PreAuthService(db)
@@ -74,8 +77,8 @@ def override_pre_auth(
             override_decision=payload.override_decision,
             override_amount=payload.override_amount,
             reason=payload.reason,
-            actor_role=x_user_role,
-            actor_id=payload.actor_id
+            actor_role="ADMIN",
+            actor_id=payload.actor_id or admin_id
         )
         return result
     except UnauthorizedOverrideException as ue:
