@@ -91,6 +91,13 @@ class EligibilityService:
             is_active=policy.is_active
         )
 
+    def get_first_policy_coverage_for_member(self, member_id: str) -> Optional[CustomerPolicyCoverage]:
+        """Retrieves first active coverage for a member."""
+        policy = self.policy_repo.get_policy_by_member_id(member_id)
+        if not policy:
+            return None
+        return self.get_coverage(member_id=member_id, policy_id=policy.policy_id)
+
     def check_eligibility(
         self,
         member_id: str,

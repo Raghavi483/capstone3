@@ -6,7 +6,7 @@ timeline inspection, and notification review.
 
 from decimal import Decimal
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from src.repositories.database import get_db
@@ -34,8 +34,18 @@ class DischargeAndBillRequest(BaseModel):
     procedures: List[ProcedureInput] = Field(default_factory=list)
 
 
+from src.controllers.auth_dependency import verify_hospital_tenancy
+
+
 @router.post("/claims/{claim_id}/admit", status_code=status.HTTP_200_OK)
-def admit_patient(claim_id: str, payload: AdmitPatientRequest, db: Session = Depends(get_db)):
+def admit_patient(
+    claim_id: str,
+    payload: AdmitPatientRequest,
+    db: Session = Depends(get_db),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
+    x_hospital_id: Optional[str] = Header(None, alias="X-Hospital-Id")
+):
+    verify_hospital_tenancy(payload.hospital_id, x_user_role, x_hospital_id)
     service = AdmissionService(db)
     try:
         return service.record_admission(
@@ -52,7 +62,14 @@ def admit_patient(claim_id: str, payload: AdmitPatientRequest, db: Session = Dep
 
 
 @router.post("/claims/{claim_id}/discharge", status_code=status.HTTP_200_OK)
-def discharge_patient(claim_id: str, payload: DischargeAndBillRequest, db: Session = Depends(get_db)):
+def discharge_patient(
+    claim_id: str,
+    payload: DischargeAndBillRequest,
+    db: Session = Depends(get_db),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
+    x_hospital_id: Optional[str] = Header(None, alias="X-Hospital-Id")
+):
+    verify_hospital_tenancy(payload.hospital_id, x_user_role, x_hospital_id)
     service = AdmissionService(db)
     try:
         procedures_dict = [p.model_dump() for p in payload.procedures]

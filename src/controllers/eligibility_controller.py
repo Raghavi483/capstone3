@@ -4,8 +4,8 @@ Exposes REST endpoints for registration, coverage view, and eligibility check.
 """
 
 from decimal import Decimal
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from src.repositories.database import get_db
@@ -60,8 +60,44 @@ def register_customer(payload: RegisterCustomerRequest, db: Session = Depends(ge
     }
 
 
+from src.controllers.auth_dependency import verify_customer_tenancy
+
+
+@router.get("/customers/{member_id}/coverage")
+def get_customer_all_coverage(
+    member_id: str,
+    db: Session = Depends(get_db),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
+    x_member_id: Optional[str] = Header(None, alias="X-Member-Id"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-Id")
+):
+    verify_customer_tenancy(member_id, x_user_role, x_member_id, x_user_id)
+    service = EligibilityService(db)
+    coverage = service.get_first_policy_coverage_for_member(member_id)
+    if not coverage:
+        raise HTTPException(status_code=404, detail="Customer policy not found")
+    return {
+        "member_id": coverage.member_id,
+        "policy_id": coverage.policy_id,
+        "product_name": coverage.product_name,
+        "sum_insured": str(coverage.sum_insured),
+        "remaining_balance": str(coverage.remaining_balance),
+        "exclusions": coverage.exclusions,
+        "network_hospitals": coverage.network_hospitals,
+        "is_active": coverage.is_active
+    }
+
+
 @router.get("/customers/{member_id}/policies/{policy_id}/coverage")
-def get_policy_coverage(member_id: str, policy_id: str, db: Session = Depends(get_db)):
+def get_policy_coverage(
+    member_id: str,
+    policy_id: str,
+    db: Session = Depends(get_db),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
+    x_member_id: Optional[str] = Header(None, alias="X-Member-Id"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-Id")
+):
+    verify_customer_tenancy(member_id, x_user_role, x_member_id, x_user_id)
     service = EligibilityService(db)
     coverage = service.get_coverage(member_id=member_id, policy_id=policy_id)
     if not coverage:
