@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.repositories.database import init_db
 from src.controllers.health_controller import router as health_router
 from src.controllers.eligibility_controller import router as eligibility_router
+from src.controllers.pre_auth_controller import router as pre_auth_router
 from src.utils.logger import get_logger
 
 logger = get_logger("medicard.api")
@@ -45,3 +46,4 @@ async def correlation_id_middleware(request: Request, call_next):
 
 app.include_router(health_router)
 app.include_router(eligibility_router)
+app.include_router(pre_auth_router)
