@@ -79,6 +79,7 @@ class PreAuthModel(Base):
     estimated_cost = Column(Numeric(12, 2, asdecimal=True), nullable=False)
     expected_admission_date = Column(String(50), nullable=False)
     status = Column(String(30), default="PENDING", nullable=False)  # PENDING, APPROVED, PARTIALLY_APPROVED, REJECTED, QUERY_RAISED
+    policy_version_tag = Column(String(50), default="v1.0.0", nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -114,6 +115,7 @@ class ClaimModel(Base):
     hospital_id = Column(String(50), index=True, nullable=False)
     pre_auth_id = Column(String(50), nullable=True)
     status = Column(String(30), default="PRE_AUTH", nullable=False)  # PRE_AUTH, ADMITTED, DISCHARGED, SETTLED, DISPUTED, CLOSED
+    policy_version_tag = Column(String(50), default="v1.0.0", nullable=False)
     is_settled = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -240,3 +242,42 @@ class PolicyProductConfigModel(Base):
     @exclusions.setter
     def exclusions(self, value):
         self.exclusions_json = json.dumps(value or [])
+
+
+class PolicyRuleVersionModel(Base):
+    """
+    Immutable versioned policy rule definition (Section 7, NET-02).
+    Historical claims reference the policy_version_tag active when the pre-auth was initiated.
+    """
+    __tablename__ = "policy_rule_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    version_id = Column(String(100), unique=True, index=True, nullable=False)
+    policy_code = Column(String(50), index=True, nullable=False)
+    version_tag = Column(String(50), nullable=False)
+    effective_from = Column(String(50), nullable=False)
+    effective_to = Column(String(50), nullable=True)
+    auto_approval_threshold = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    buffer_percentage = Column(Numeric(5, 4, asdecimal=True), nullable=False)
+    policy_cap = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    auto_approved_diagnoses_json = Column(Text, default="[]", nullable=False)
+    exclusions_json = Column(Text, default="[]", nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    @property
+    def auto_approved_diagnoses(self):
+        return json.loads(self.auto_approved_diagnoses_json or "[]")
+
+    @auto_approved_diagnoses.setter
+    def auto_approved_diagnoses(self, value):
+        self.auto_approved_diagnoses_json = json.dumps(value or [])
+
+    @property
+    def exclusions(self):
+        return json.loads(self.exclusions_json or "[]")
+
+    @exclusions.setter
+    def exclusions(self, value):
+        self.exclusions_json = json.dumps(value or [])
+

@@ -21,7 +21,7 @@ from src.domain.adjudication_rule import (
 from src.repositories.pre_auth_repository import PreAuthRepository
 from src.repositories.policy_repository import PolicyRepository
 from src.repositories.hospital_repository import HospitalRepository
-from src.repositories.models import ClaimModel, ClaimTimelineEventModel, AuditEventModel
+from src.repositories.models import ClaimModel, ClaimTimelineEventModel, AuditEventModel, PolicyRuleVersionModel
 from src.utils.logger import get_logger
 
 logger = get_logger("medicard.preauth")
@@ -59,12 +59,28 @@ class PreAuthService:
         exclusions = policy.exclusions if policy else []
         remaining_balance = policy.remaining_balance if policy else Decimal("0.00")
 
+        # Retrieve active PolicyRuleVersion (Priority 3B / NET-02)
+        rule_version = self.db.query(PolicyRuleVersionModel).filter_by(
+            policy_code=policy_id, is_active=True
+        ).order_by(PolicyRuleVersionModel.id.desc()).first()
+
+        if rule_version:
+            policy_version_tag = rule_version.version_tag
+            threshold = rule_version.auto_approval_threshold
+            auto_diagnoses = rule_version.auto_approved_diagnoses
+            if rule_version.exclusions:
+                exclusions = rule_version.exclusions
+        else:
+            policy_version_tag = "v1.0.0"
+            threshold = Decimal("50000.00")
+            auto_diagnoses = [
+                "ACUTE_APPENDICITIS", "CATARACT_SURGERY", "NORMAL_DELIVERY", "HERNIA_REPAIR"
+            ]
+
         # Evaluate auto-approval rules (AC-05)
         config = AutoApprovalEngineConfig(
-            cost_threshold=Decimal("50000.00"),
-            auto_approved_diagnoses=[
-                "ACUTE_APPENDICITIS", "CATARACT_SURGERY", "NORMAL_DELIVERY", "HERNIA_REPAIR"
-            ],
+            cost_threshold=threshold,
+            auto_approved_diagnoses=auto_diagnoses,
             exclusions=exclusions
         )
         auto_result = evaluate_auto_approval(
@@ -87,7 +103,8 @@ class PreAuthService:
             diagnosis=pre_auth_entity.diagnosis,
             estimated_cost=pre_auth_entity.estimated_cost,
             expected_admission_date=pre_auth_entity.expected_admission_date,
-            status=pre_auth_entity.status
+            status=pre_auth_entity.status,
+            policy_version_tag=policy_version_tag
         )
 
         # Persist Decision in append-only table (AC-04)
@@ -100,14 +117,15 @@ class PreAuthService:
             decider_id="SYSTEM"
         )
 
-        # Create Claim record
+        # Create Claim record bound to the historical policy version tag
         claim = ClaimModel(
             claim_id=pre_auth_entity.claim_id,
             member_id=member_id,
             policy_id=policy_id,
             hospital_id=hospital_id,
             pre_auth_id=pre_auth_entity.pre_auth_id,
-            status="PRE_AUTH"
+            status="PRE_AUTH",
+            policy_version_tag=policy_version_tag
         )
         self.db.add(claim)
 

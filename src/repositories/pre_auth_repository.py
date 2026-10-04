@@ -23,7 +23,8 @@ class PreAuthRepository:
         diagnosis: str,
         estimated_cost: Decimal,
         expected_admission_date: str,
-        status: str = "PENDING"
+        status: str = "PENDING",
+        policy_version_tag: str = "v1.0.0"
     ) -> PreAuthModel:
         pre_auth = PreAuthModel(
             pre_auth_id=pre_auth_id,
@@ -34,7 +35,8 @@ class PreAuthRepository:
             diagnosis=diagnosis,
             estimated_cost=estimated_cost,
             expected_admission_date=expected_admission_date,
-            status=status
+            status=status,
+            policy_version_tag=policy_version_tag
         )
         self.db.add(pre_auth)
         self.db.commit()
