@@ -45,6 +45,8 @@ def admit_patient(claim_id: str, payload: AdmitPatientRequest, db: Session = Dep
         )
     except InvalidClaimStateException as ie:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(ie))
+    except SettledClaimImmutableException as se:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(se))
     except ValueError as ve:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
 
