@@ -31,7 +31,7 @@ install_dependencies:
     - python -m venv .venv
     - . .venv/bin/activate
     - pip install --upgrade pip
-    - pip install pytest pytest-cov sqlalchemy alembic fastapi uvicorn pydantic requests playwright anthropic
+    - pip install -r requirements.txt
   artifacts:
     paths:
       - .venv/
@@ -98,7 +98,7 @@ playwright_e2e:
   script:
     - python -m venv .venv
     - . .venv/bin/activate
-    - pip install pytest sqlalchemy alembic fastapi uvicorn pydantic requests playwright
+    - pip install -r requirements.txt
     - playwright install --with-deps chromium
     - echo "[CI] Executing full Playwright E2E browser test suite..."
     - pytest tests/e2e/test_playwright_e2e.py -v -s

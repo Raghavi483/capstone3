@@ -1,5 +1,5 @@
 {
-  "task_id": "TASK-AC-07-20261004111009",
+  "task_id": "TASK-AC-07-20261005052923",
   "target_ac": "AC-07",
   "assigned_agent": "settlement-agent",
   "system_prompt": "You are a specialized MediCard domain agent. Adhere strictly to Rule 1 (No-Hand-Coding) and Rule 2 (Spec is Source of Truth). Follow TDD Red-Green-Refactor. Use Decimal for all currency. Enforce append-only ledger immutability and mask all PHI from logs.",
@@ -63,5 +63,5 @@
     }
   ],
   "validation_command": "pytest tests/unit/test_ac-07*.py -v",
-  "timestamp": "2026-10-04T11:10:09.782534+00:00"
+  "timestamp": "2026-10-05T05:29:23.958094+00:00"
 }

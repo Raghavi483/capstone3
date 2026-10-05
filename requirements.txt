@@ -1,0 +1,22 @@
+# MediCard Cashless Hospitalization & Settlement Platform (BC-AINE-017)
+# Authoritative Dependencies Manifest
+
+# Core Web Framework & ASGI Server
+fastapi>=0.110.0,<=0.142.2
+uvicorn>=0.29.0,<=0.53.0
+pydantic>=2.6.0,<=2.13.5
+requests>=2.31.0,<=2.32.4
+
+# Database & Schema Migrations (NFR-05)
+sqlalchemy>=2.0.28,<=2.0.41
+alembic>=1.13.0,<=1.20.0
+
+# Testing & Code Coverage (NFR-08)
+pytest>=8.0.0,<=9.1.1
+pytest-cov>=4.1.0,<=7.1.0
+
+# End-to-End Browser Automation (Section 13)
+playwright>=1.40.0,<=1.63.0
+
+# Programmatic Claude Agent SDK Integration (Priority 6, Section 10)
+anthropic>=0.25.0,<=1.11.0
